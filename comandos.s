@@ -43,6 +43,16 @@ stmfd sp!,{r0-r3,lr}
     cmp r0,#0
     bleq .helloworld
 
+    ldr r0, =contador
+	bl .memcmp_chksum
+    cmp r0,#0
+    bleq .counter_leds
+
+    ldr r0, =time
+	bl .memcmp_chksum
+    cmp r0,#0
+    bleq .print_time
+
     bl .helloworld
 
  ldmfd sp!,{r0-r3,pc}
@@ -57,7 +67,7 @@ stmfd sp!,{r0-r3,lr}
     .contador:
         ldr r2, =GPIO1_SETDATAOUT
         mov r0, r3
-        bl .hex_to_ascii
+        bl .int_to_ascii
 
         mov r1,r3,LSL #21
         str r1, [r2]
@@ -165,25 +175,11 @@ setar led off
 /********************************************************/
 .set_ledoff:
 stmfd sp!,{r0-r3,lr}
-    mov r3,#0
-    .contadorq:
-        ldr r2, =GPIO1_SETDATAOUT
-        mov r0, r3
-        bl .hex_to_ascii
-
-        mov r1,r3,LSL #21
-        str r1, [r2]
-		add r3,r3,#1
-		bl .delay_1s
-        bl .poweroff_led
-        cmp r3,#16
-    bne .contador   
-
-.poweroff_leq:
     ldr r0, =GPIO1_CLEARDATAOUT
-    ldr r1, =(0xf<<21)
+    mov r1, #(0xf<<21)
     str r1, [r0]
-    bx lr
+    ldr r0,=ledoffmsg
+    bl .print_string
 
  ldmfd sp!,{r0-r3,pc}
 /********************************************************/
@@ -193,46 +189,36 @@ set_ledon
 /********************************************************/
 .set_ledon:
 stmfd sp!,{r0-r3,lr}
-    mov r3,#0
-    .contado3r:
-        ldr r2, =GPIO1_SETDATAOUT
-        mov r0, r3
-        bl .hex_to_ascii
-
-        mov r1,r3,LSL #21
-        str r1, [r2]
-		add r3,r3,#1
-		bl .delay_1s
-        bl .poweroff_led
-        cmp r3,#16
-    bne .contador   
-
-.poweroff_le:
-    ldr r0, =GPIO1_CLEARDATAOUT
-    ldr r1, =(0xf<<21)
-    str r1, [r0]
-    bx lr
+    ldr r2, =GPIO1_SETDATAOUT
+    mov r1, #(0xf<<21)
+    str r1, [r2]
+    ldr r0,=ledonmsg
+    bl .print_string
 
  ldmfd sp!,{r0-r3,pc}
 /********************************************************/
-
-
-
 
 
 /* Read-Only Data Section */
 .section .rodata
 .align 4
 hello:                   .asciz "helloworld\n\r"
-printhello:              .asciz "helloworld"
-set_timer:               .asciz "set time"
-setledoff:              .asciz "led on"
-setledon:               .asciz "led off"
+ledoffmsg:               .asciz "led off usr0-usr3\n\r"
+ledonmsg:                .asciz "led on usr0-usr3\n\r"
+
 ascii:                   .asciz "0123456789ABCDEF"
 dash:                    .asciz "-------------------------\n\r"
 hex_prefix:              .asciz "0x"
 CRLF:                    .asciz "\n\r"
 dump_separator:          .asciz "  :  "
+
+/*comandos*/
+contador:                .asciz "contador015"
+printhello:              .asciz "helloworld"
+set_timer:               .asciz "set time"
+setledoff:               .asciz "led off"
+setledon:                .asciz "led on"
+time:                    .asciz "time"
 
 /* BSS Section */
 .section .bss

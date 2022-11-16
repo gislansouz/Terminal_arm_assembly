@@ -177,9 +177,6 @@ IRQ Handler
 	/* if rtc interrupt */
 	and r1,r1, #0x7f
 	
-	cmp r1, #75  /* TRM 6.3 Table 6-1*/
-	bleq .rtc_isr
-	
 	cmp r1, #72  /* TRM 6.3 Table 6-1*/
 	bleq .uart_isr
 

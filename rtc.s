@@ -1,6 +1,7 @@
 /* Global Symbols */
 .global RTC_BASE
 .global .rtc_setup
+.global .print_time
 .global .rtc_isr
 .global .rtc_to_ascii
 
@@ -43,11 +44,11 @@ RTC SETUP
 
 
 
-    /* Interrupt setup */
-    ldr r1, =0x04     /* interrupt every second */
+    /* Interrupt setup*/
+    //ldr r1, =0x04     /* interrupt every second */
     //ldr r1, =0x05     /* interrupt every minute */
     //ldr r1, =0x06     /* interrupt every hour */
-    str r1, [r0, #0x48]
+    /*str r1, [r0, #0x48]*/
 
     /* Enable RTC */
     ldr r0, =RTC_BASE
@@ -62,17 +63,17 @@ RTC SETUP
     bne .wait_rtc_update
 
    
-    /* RTC Interrupt configured as IRQ Priority 0 */
-    //RTC Interrupt number 75
+    /* RTC Interrupt configured as IRQ Priority 0
+    RTC Interrupt number 75
     ldr r0, =INTC_ILR
     ldr r1, =#0    
-    strb r1, [r0, #75] 
+    strb r1, [r0, #75] */
 
 
-    /* Interrupt mask */
+    /* Interrupt mask 
     ldr r0, =INTC_BASE
     ldr r1, =#(1<<11)    
-    str r1, [r0, #0xc8] //(75 --> Bit 11 do 3º registrador (MIR CLEAR2))
+    str r1, [r0, #0xc8] //(75 --> Bit 11 do 3º registrador (MIR CLEAR2))*/
 
     
     /* Load context */	
@@ -126,13 +127,13 @@ Imprime hora do RTC
 /********************************************************
 RTC ISR
 ********************************************************/
-.rtc_isr:
+/*.rtc_isr:
     stmfd sp!, {r0-r2, lr}
 
-    /*print time*/
+    //print time
     bl .print_time
 
-    ldmfd sp!, {r0-r2, pc}
+    ldmfd sp!, {r0-r2, pc}*/
 /********************************************************/  
 
 
