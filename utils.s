@@ -12,6 +12,7 @@
 .global .int_to_ascii
 .global .hex_digit_to_ascii
 .global .memcmp
+.global .ascii_to_dec_digit
 
 .type div, %function
 .type .memory_clear, %function
@@ -20,7 +21,7 @@
 .type .print_nstring, %function
 .type .hex_digit_to_ascii, %function
 .type _print_string, %function
-
+.type .ascii_to_dec_digit,%function
 
 /* Text Section */
 .section .text,"ax"
@@ -163,6 +164,9 @@ DELAY
 	add r0,r0,#0x30
 	bx lr
 
+.ascii_to_dec_digit:
+	sub r0,r0,#0x30
+	bx lr
 
 .hex_digit_to_ascii:
        stmfd sp!,{r0-r2,lr} 

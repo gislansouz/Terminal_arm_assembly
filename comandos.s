@@ -1,7 +1,12 @@
 .global .check_cmd
 .global .counter_leds
+.global .set_rtc
 .type .check_cmd, %function
 .type .counter_leds, %function
+.type .set_rtc, %function
+
+.equ GPIO1_SETDATAOUT, 0x4804C194
+.equ GPIO1_CLEARDATAOUT, 0x4804C190
 
 /* Text Section */
 .section .text,"ax"
@@ -56,28 +61,72 @@ Setar hora RTC
 .set_rtc:
 stmfd sp!,{r0-r3,lr}
 
-    ldr r1,=RTC_BASE
-    ldr r0, [r1, #8] //hours
-    bl .rtc_to_ascii
+    ldr r2,=buffer_uart
+    ldrb r1,[r2]
+    mov r0,r1
+    bl .ascii_to_dec_digit
+    mov r1,r0
+    ldrb r0,[r2,#1]
+    bl .ascii_to_dec_digit
+    bl .set_hours_rtc
 
-    ldr r0,=':'
-    bl .uart_putc
+    ldrb r1,[r2,#3]
+    mov r0,r1
+    bl .ascii_to_dec_digit
+    mov r1,r0
+    ldrb r0,[r2,#4]
+    bl .ascii_to_dec_digit
+    bl .set_minutes_rtc
 
-    ldr r0, [r1, #4] //minutes
-    bl .rtc_to_ascii
-
-    ldr r0,=':'
-    bl .uart_putc
-
-    ldr r0, [r1, #0] //seconds
-    bl .rtc_to_ascii
-
-    ldr r0,='\r'
-    bl .uart_putc
-    ldmfd sp!, {r0-r2, pc}
+    ldrb r1,[r2,#6]
+     mov r0,r1
+    bl .ascii_to_dec_digit
+    mov r1,r0
+    ldrb r0,[r2,#7]
+    bl .ascii_to_dec_digit
+    bl .set_seconds_rtc
 
 ldmfd sp!,{r0-r3,pc}
 /********************************************************/
+
+/********************************************************
+Setar hora rtc 
+R0->primeiro digito da hora
+R1->segundo digito da hora
+/********************************************************/
+    .set_hours_rtc:
+    mov r0, r0, LSL #4
+    and r1,r1,#~(0xf<<4)
+    orr r0,r1,r0
+    ldr r1,=RTC_BASE
+    str r0, [r1, #8] //hours
+    bx lr
+
+/********************************************************
+Setar minutos rtc 
+R0->primeiro digito dos minutos
+R1->segundo digito dos minutos
+/********************************************************/
+    .set_minutes_rtc:
+    mov r0, r0, LSL #4
+    and r1,r1,#~(0xf<<4)
+    orr r0,r1,r0
+    ldr r1,=RTC_BASE
+    str r0, [r1, #4] //minutes
+    bx lr
+
+/********************************************************
+Setar segundos rtc 
+R0->primeiro digito dos segundos
+R1->segundo digito dos segundos
+/********************************************************/
+    .set_seconds_rtc:
+    mov r0, r0, LSL #4
+    and r1,r1,#~(0xf<<4)
+    orr r0,r1,r0
+    ldr r1,=RTC_BASE
+    str r0, [r1] //seconds
+    bx lr
 
 /* Read-Only Data Section */
 .section .rodata
