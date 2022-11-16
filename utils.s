@@ -13,6 +13,8 @@
 .global .hex_digit_to_ascii
 .global .memcmp
 .global .ascii_to_dec_digit
+.global .memcmp_chksum
+
 
 .type div, %function
 .type .memory_clear, %function
@@ -22,6 +24,7 @@
 .type .hex_digit_to_ascii, %function
 .type _print_string, %function
 .type .ascii_to_dec_digit,%function
+.type .memcmp_chksum,%function
 
 /* Text Section */
 .section .text,"ax"

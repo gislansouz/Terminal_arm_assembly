@@ -21,8 +21,29 @@ R1-> Tamanho
 .check_cmd:
 stmfd sp!,{r0-r3,lr}
 
-    ldr r0, =hello
-    bl .print_string
+    ldr r1, =buffer_uart
+    ldr r0, =set_timer
+    mov r2,#8
+	bl .memcmp
+    cmp r0,#0
+    bleq .set_rtc
+
+    ldr r0, =setledon
+	bl .memcmp_chksum
+    cmp r0,#0
+    bleq .set_ledon
+
+    ldr r0, =setledoff
+	bl .memcmp_chksum
+    cmp r0,#0
+    bleq .set_ledoff
+    
+    ldr r0, =printhello
+	bl .memcmp_chksum
+    cmp r0,#0
+    bleq .helloworld
+
+    bl .helloworld
 
  ldmfd sp!,{r0-r3,pc}
 /********************************************************/
@@ -62,6 +83,8 @@ Setar horario RTC
 stmfd sp!,{r0-r3,lr}
 
     ldr r2,=buffer_uart
+    add r2,r2,#8
+
     ldrb r1,[r2]
     mov r0,r1
     bl .ascii_to_dec_digit
@@ -128,10 +151,88 @@ R1->segundo digito dos segundos
     str r0, [r1] //seconds
     bx lr
 
+/********************************************************
+print hello World
+/********************************************************/
+.helloworld:
+    ldr r0, =hello
+    bl .print_string
+    bx lr 
+/********************************************************/
+
+/********************************************************
+setar led off
+/********************************************************/
+.set_ledoff:
+stmfd sp!,{r0-r3,lr}
+    mov r3,#0
+    .contadorq:
+        ldr r2, =GPIO1_SETDATAOUT
+        mov r0, r3
+        bl .hex_to_ascii
+
+        mov r1,r3,LSL #21
+        str r1, [r2]
+		add r3,r3,#1
+		bl .delay_1s
+        bl .poweroff_led
+        cmp r3,#16
+    bne .contador   
+
+.poweroff_leq:
+    ldr r0, =GPIO1_CLEARDATAOUT
+    ldr r1, =(0xf<<21)
+    str r1, [r0]
+    bx lr
+
+ ldmfd sp!,{r0-r3,pc}
+/********************************************************/
+
+/********************************************************
+set_ledon
+/********************************************************/
+.set_ledon:
+stmfd sp!,{r0-r3,lr}
+    mov r3,#0
+    .contado3r:
+        ldr r2, =GPIO1_SETDATAOUT
+        mov r0, r3
+        bl .hex_to_ascii
+
+        mov r1,r3,LSL #21
+        str r1, [r2]
+		add r3,r3,#1
+		bl .delay_1s
+        bl .poweroff_led
+        cmp r3,#16
+    bne .contador   
+
+.poweroff_le:
+    ldr r0, =GPIO1_CLEARDATAOUT
+    ldr r1, =(0xf<<21)
+    str r1, [r0]
+    bx lr
+
+ ldmfd sp!,{r0-r3,pc}
+/********************************************************/
+
+
+
+
+
 /* Read-Only Data Section */
 .section .rodata
 .align 4
-hello:              .asciz "helloworld\n\r"
+hello:                   .asciz "helloworld\n\r"
+printhello:              .asciz "helloworld"
+set_timer:               .asciz "set time"
+setledoff:              .asciz "led on"
+setledon:               .asciz "led off"
+ascii:                   .asciz "0123456789ABCDEF"
+dash:                    .asciz "-------------------------\n\r"
+hex_prefix:              .asciz "0x"
+CRLF:                    .asciz "\n\r"
+dump_separator:          .asciz "  :  "
 
 /* BSS Section */
 .section .bss
