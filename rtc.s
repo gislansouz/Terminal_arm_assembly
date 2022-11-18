@@ -119,8 +119,9 @@ Imprime hora do RTC
     ldr r0, [r1, #0] //seconds
     bl .rtc_to_ascii
 
-    ldr r0,='\r'
-    bl .uart_putc
+    ldr r0,=CRLF
+    bl .print_string
+    
     ldmfd sp!, {r0-r2, pc}
 /********************************************************/
 
@@ -137,5 +138,7 @@ RTC ISR
 /********************************************************/  
 
 
-
+.section .rodata
+.align 4
+CRLF:                    .asciz "\n\r"
 

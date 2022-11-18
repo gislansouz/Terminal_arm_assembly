@@ -4,6 +4,7 @@
 .type .check_cmd, %function
 .type .counter_leds, %function
 .type .set_rtc, %function
+.global .set_ledon
 
 .equ GPIO1_SETDATAOUT, 0x4804C194
 .equ GPIO1_CLEARDATAOUT, 0x4804C190
@@ -19,24 +20,35 @@ R0-> Endereço
 R1-> Tamanho
 /********************************************************/
 .check_cmd:
-stmfd sp!,{r0-r3,lr}
+stmfd sp!,{r0-r12,lr}
+
+    ldr r0,=CRLF
+    bl .print_string
 
     ldr r1, =buffer_uart
     ldr r0, =set_timer
     mov r2,#8
 	bl .memcmp
     cmp r0,#0
-    bleq .set_rtc
+    beq .set_rtc
 
     ldr r0, =setledon
-	bl .memcmp_chksum
+    mov r2,#6
+	bl .memcmp
     cmp r0,#0
-    bleq .set_ledon
+    beq .set_ledon
+
+    ldr r0, =sequencia
+    mov r2,#9
+	bl .memcmp
+    cmp r0,#0
+    beq .sequencia
 
     ldr r0, =setledoff
-	bl .memcmp_chksum
+    mov r2,#7
+	bl .memcmp
     cmp r0,#0
-    bleq .set_ledoff
+    beq .set_ledoff
     
     ldr r0, =printhello
 	bl .memcmp_chksum
@@ -44,25 +56,34 @@ stmfd sp!,{r0-r3,lr}
     bleq .helloworld
 
     ldr r0, =contador
-	bl .memcmp_chksum
+    mov r2,#11
+	bl .memcmp
     cmp r0,#0
-    bleq .counter_leds
+    beq .counter_leds
 
     ldr r0, =time
-	bl .memcmp_chksum
+    mov r2,#4
+	bl .memcmp
     cmp r0,#0
     bleq .print_time
 
-    bl .helloworld
+    volta:
 
- ldmfd sp!,{r0-r3,pc}
+    ldr r1,=end_buffer
+    mov r2,#0
+    str r2,[r1]
+
+    ldr r0, =cmdpointer
+    bl .print_string
+
+ ldmfd sp!,{r0-r12,pc}
 /********************************************************/
 
 /********************************************************
 contador 0-15 nos leds da placa e imprime na tela
 /********************************************************/
 .counter_leds:
-stmfd sp!,{r0-r3,lr}
+//stmfd sp!,{r0-r3,lr}
     mov r3,#0
     .contador:
         ldr r2, =GPIO1_SETDATAOUT
@@ -74,26 +95,30 @@ stmfd sp!,{r0-r3,lr}
 		add r3,r3,#1
 		bl .delay_1s
         bl .poweroff_led
+        voltaloop:
         cmp r3,#16
     bne .contador   
+    b volta
 
 .poweroff_led:
     ldr r0, =GPIO1_CLEARDATAOUT
     ldr r1, =(0xf<<21)
     str r1, [r0]
-    bx lr
+    b voltaloop
 
- ldmfd sp!,{r0-r3,pc}
+
+
+ //ldmfd sp!,{r0-r3,pc}
 /********************************************************/
 
 /********************************************************
 Setar horario RTC
 /********************************************************/
 .set_rtc:
-stmfd sp!,{r0-r3,lr}
+stmfd sp!,{r0-r3}
 
     ldr r2,=buffer_uart
-    add r2,r2,#8
+    add r2,r2,#9
 
     ldrb r1,[r2]
     mov r0,r1
@@ -119,7 +144,8 @@ stmfd sp!,{r0-r3,lr}
     bl .ascii_to_dec_digit
     bl .set_seconds_rtc
 
-ldmfd sp!,{r0-r3,pc}
+ldmfd sp!,{r0-r3}
+b volta
 /********************************************************/
 
 /********************************************************
@@ -142,10 +168,10 @@ R1->segundo digito dos minutos
 /********************************************************/
     .set_minutes_rtc:
     mov r0, r0, LSL #4
-    and r1,r1,#~(0xf<<4)
+    bic r1,#~(0xf<<4)
     orr r0,r1,r0
     ldr r1,=RTC_BASE
-    str r0, [r1, #4] //minutes
+    strb r0, [r1, #4] //minutes
     bx lr
 
 /********************************************************
@@ -167,45 +193,67 @@ print hello World
 .helloworld:
     ldr r0, =hello
     bl .print_string
-    bx lr 
+    b volta
 /********************************************************/
 
 /********************************************************
 setar led off
 /********************************************************/
 .set_ledoff:
-stmfd sp!,{r0-r3,lr}
+//stmfd sp!,{r0-r3,lr}
     ldr r0, =GPIO1_CLEARDATAOUT
     mov r1, #(0xf<<21)
     str r1, [r0]
     ldr r0,=ledoffmsg
     bl .print_string
+    b volta
 
- ldmfd sp!,{r0-r3,pc}
+ //ldmfd sp!,{r0-r3,pc}
 /********************************************************/
 
 /********************************************************
 set_ledon
 /********************************************************/
 .set_ledon:
-stmfd sp!,{r0-r3,lr}
     ldr r2, =GPIO1_SETDATAOUT
     mov r1, #(0xf<<21)
     str r1, [r2]
-    ldr r0,=ledonmsg
-    bl .print_string
-
- ldmfd sp!,{r0-r3,pc}
+    //ldr r0,=ledonmsg
+    //bl .print_string
+    b volta
 /********************************************************/
 
+/********************************************************
+set_ledon
+/********************************************************/
+.sequencia:
+    //stmfd sp!,{r0-r3}
+    mov r0,#'>'
+    bl .uart_putc
+    _loop:  
+        bl .uart_getc
+        bl .uart_putc
+        cmp r0,#'\r'
+        ldreq r0,=CRLF
+        bleq .print_string
+        beq .sequencia
+        cmp r0,#'a'
+        ldreq r0,=CRLF
+        bleq .print_string
+        beq volta
+        b _loop
+    
+    //ldmfd sp!,{r0-r3}
+/********************************************************/ 
 
 /* Read-Only Data Section */
 .section .rodata
 .align 4
-hello:                   .asciz "helloworld\n\r"
+hello:                   .asciz "hellrld\n\r"
 ledoffmsg:               .asciz "led off usr0-usr3\n\r"
 ledonmsg:                .asciz "led on usr0-usr3\n\r"
-
+cmdpointer:              .asciz "->"
+cmdpo:              .asciz ">"
 ascii:                   .asciz "0123456789ABCDEF"
 dash:                    .asciz "-------------------------\n\r"
 hex_prefix:              .asciz "0x"
@@ -214,12 +262,17 @@ dump_separator:          .asciz "  :  "
 
 /*comandos*/
 contador:                .asciz "contador015"
+sequencia:               .asciz "sequencia"
 printhello:              .asciz "helloworld"
 set_timer:               .asciz "set time"
 setledoff:               .asciz "led off"
 setledon:                .asciz "led on"
 time:                    .asciz "time"
+cacheinfo:               .asciz "cache"/*falta*/
+goto:                    .asciz "goto" /*falta*/
+reset:                   .asciz "reset"/*falta*/
+blinkled:                .asciz "blink"/*falta*/
+dec_digit_led:           .asciz "led"/*falta*/
 
-/* BSS Section */
 .section .bss
 .align 4

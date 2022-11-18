@@ -26,7 +26,7 @@
 .equ CPSR_ABT, 0x17
 .equ CPSR_UND, 0x1B
 .equ CPSR_SYS, 0x1F
-
+.equ GPIO1_CLEARDATAOUT, 0x4804C190
 
 //.equ VECTOR_BASE, 0x4030CE20
 .equ VECTOR_BASE, 0x4030CE00 // Vector Base on BBB
@@ -124,14 +124,15 @@ _start:
     ldr r1, =.irq_handler
     str r1, [r0]
     
-    ldr r0, =_swi
-    ldr r1, =.swi_handler
-    str r1, [r0]
+    //ldr r0, =_swi
+    //ldr r1, =.swi_handler
+    //str r1, [r0]
       
     /* Hardware setup */
     bl .gpio_setup
     bl .disable_wdt
     bl .rtc_setup
+    bl .uart0_init
     
     /* Enable global irq */
     mrs r0, cpsr
@@ -147,16 +148,17 @@ _start:
     /* Print Hello World */
     ldr r0, =cmdpointer
     bl .print_string
+    //ldr r0, =digite
+    //bl .print_string
 
 .main_loop:
-         
-    /* logical 1 turns on the led, TRM 25.3.4.2.2.2 */
-    bl .led_OFF
-    bl .delay_1s
+    bl .uart_getc
+    //ldr r0,=CRLF
+    //bl .print_string
+    /*ldr r0,=buffer_uart
+    mov r1,#15
+    bl .print_nstring*/
 
-    bl .led_ON
-    bl .delay_1s
-    
     b .main_loop    
 
 /********************************************************/
@@ -176,7 +178,7 @@ IRQ Handler
 	
 	/* if rtc interrupt */
 	and r1,r1, #0x7f
-	
+
 	cmp r1, #72  /* TRM 6.3 Table 6-1*/
 	bleq .uart_isr
 
@@ -228,15 +230,10 @@ IRQ Handler
 .data_abort_handler:
    b .      
 /********************************************************/
-
-
-
 /* Read-Only Data Section */
 .section .rodata
 .align 4
-
-
-
+    
 cmdpointer:              .asciz "->"
 irq_mode_msg:            .asciz "IRQ Mode!\n\r"
 fiq_mode_msg:            .asciz "FIQ Mode!\n\r"
@@ -244,11 +241,12 @@ prefetch_abort_msg:      .asciz "Prefetch Abort!\n\r"
 data_abort_msg:          .asciz "Data Abort!\n\r"
 undefined_exception_msg: .asciz "Undefined Exception!\n\r"
 swi_msg:                 .asciz "Software Interrupt Number: \n\r"
-ascii:                   .asciz "0123456789ABCDEF"
+ascii:                   .asciz "0123456789-"
 dash:                    .asciz "-------------------------\n\r"
 hex_prefix:              .asciz "0x"
 CRLF:                    .asciz "\n\r"
 dump_separator:          .asciz "  :  "
+digite:                  .asciz "digite os numeros:\n\r"
 
 
 /* Data Section */
@@ -258,7 +256,4 @@ dump_separator:          .asciz "  :  "
 /* BSS Section */
 .section .bss
 .align 4
-
-.equ BUFFER_SIZE, 16
-_buffer: .fill BUFFER_SIZE
 

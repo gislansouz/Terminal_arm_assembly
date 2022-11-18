@@ -12,7 +12,7 @@ all:  $(OBJS)
 	$(CROSS_COMPILE)ld -o startup -T memmap $(OBJS)
 	$(CROSS_COMPILE)objcopy startup startup.bin -O binary
 	$(CROSS_COMPILE)objdump -DSx -b binary -marm startup.bin > startup.lst
-	cp *.bin /home/gislan/lab05
+	cp *.bin /tftpboot/
 
 clean:
 	rm *.o *.bin *.lst

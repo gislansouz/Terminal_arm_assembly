@@ -164,8 +164,9 @@ DELAY
 
 /********************************************************/
 .dec_digit_to_ascii:
+    stmfd sp!,{r1-r2,lr}
 	add r0,r0,#0x30
-	bx lr
+    ldmfd sp!, {r1-r2, pc}
 
 .ascii_to_dec_digit:
 	sub r0,r0,#0x30
@@ -393,5 +394,3 @@ _printf:
 .equ SIZE, 128
 .global buffer_printf
 buffer_printf: .fill SIZE
-
-
