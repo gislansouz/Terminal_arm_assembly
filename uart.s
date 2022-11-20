@@ -193,3 +193,4 @@ end_buffer: .word 0
 
 .section .bss
 .align 4
+

@@ -14,6 +14,7 @@
 .global .memcmp
 .global .ascii_to_dec_digit
 .global .memcmp_chksum
+.global .ascii_to_hex
 
 
 .type div, %function
@@ -151,14 +152,14 @@ DELAY
     bx lr
 /********************************************************/
 .delay_1s:
-    stmfd sp!,{r0-r2,lr}
+    stmfd sp!,{r0-r4,lr}
     ldr  r0,=RTC_BASE
     ldrb r1, [r0, #0] //seconds
 .wait_second:
     ldrb r2, [r0, #0] //seconds
     cmp r2, r1
     beq .wait_second
-    ldmfd sp!,{r0-r2,pc}
+    ldmfd sp!,{r0-r4,pc}
 
 
 
@@ -169,8 +170,30 @@ DELAY
     ldmfd sp!, {r1-r2, pc}
 
 .ascii_to_dec_digit:
+    stmfd sp!,{r1-r4,lr}
 	sub r0,r0,#0x30
-	bx lr
+    ldmfd sp!, {r1-r4,pc}
+
+.hex_afabet_to_digit:
+    stmfd sp!,{r1-r4,lr}
+    sub r0,r0,#1
+    bic r0,r0,#(0xf<<4)
+    add r0,r0,#10
+    ldmfd sp!, {r1-r4,pc}
+
+.ascii_to_hex:
+    stmfd sp!,{r1-r4,lr}
+    mov r1,r0,LSR #4
+    cmp r1,#3
+    bleq .ascii_to_dec_digit
+    cmp r1,#4
+    bleq .hex_afabet_to_digit
+    //mov r2,r0
+    //mov r0,#'1'   debug para encontrar erro
+    //bl .uart_putc
+    //mov r0,r2
+    ldmfd sp!, {r1-r4,pc}
+
 
 .hex_digit_to_ascii:
        stmfd sp!,{r0-r2,lr} 

@@ -5,6 +5,7 @@
 .type .counter_leds, %function
 .type .set_rtc, %function
 .global .set_ledon
+.global ascii_hex
 
 .equ GPIO1_SETDATAOUT, 0x4804C194
 .equ GPIO1_CLEARDATAOUT, 0x4804C190
@@ -66,6 +67,12 @@ stmfd sp!,{r0-r12,lr}
 	bl .memcmp
     cmp r0,#0
     bleq .print_time
+
+    ldr r0, =memory
+    mov r2,#6
+	bl .memcmp
+    cmp r0,#0
+    bleq .memory
 
     volta:
 
@@ -154,8 +161,8 @@ R0->primeiro digito da hora
 R1->segundo digito da hora
 /********************************************************/
     .set_hours_rtc:
-    mov r0, r0, LSL #4
-    and r1,r1,#~(0xf<<4)
+    mov r1, r1, LSL #4
+    bic r0,r0,#(0xf<<4)
     orr r0,r1,r0
     ldr r1,=RTC_BASE
     str r0, [r1, #8] //hours
@@ -167,8 +174,8 @@ R0->primeiro digito dos minutos
 R1->segundo digito dos minutos
 /********************************************************/
     .set_minutes_rtc:
-    mov r0, r0, LSL #4
-    bic r1,#~(0xf<<4)
+    mov r1, r1, LSL #4
+    bic r0,r0,#(0xf<<4)
     orr r0,r1,r0
     ldr r1,=RTC_BASE
     strb r0, [r1, #4] //minutes
@@ -180,8 +187,8 @@ R0->primeiro digito dos segundos
 R1->segundo digito dos segundos
 /********************************************************/
     .set_seconds_rtc:
-    mov r0, r0, LSL #4
-    and r1,r1,#~(0xf<<4)
+    mov r1, r1, LSL #4
+    bic r0,r0,#(0xf<<4)
     orr r0,r1,r0
     ldr r1,=RTC_BASE
     str r0, [r1] //seconds
@@ -224,7 +231,7 @@ set_ledon
 /********************************************************/
 
 /********************************************************
-set_ledon
+sequencia de array
 /********************************************************/
 .sequencia:
     //stmfd sp!,{r0-r3}
@@ -246,6 +253,54 @@ set_ledon
     //ldmfd sp!,{r0-r3}
 /********************************************************/ 
 
+/********************************************************
+Imprimi o conteudo da memoria
+buffer uart com endereços finais e iniciais
+/********************************************************/
+.memory:
+
+    ldr r2,=buffer_uart
+    add r2,r2,#9
+    bl .ascii_to_adress_hex
+    mov r5,r4
+
+    ldr r2,=buffer_uart
+    add r2,r2,#20
+    bl .ascii_to_adress_hex
+
+    cmp r4,r5
+    subge r4,r4,r5
+    movge r0,r5
+    movge r1,r4
+    blge .memory_dump
+
+    //ldr r0,=buffer_uart
+    //bl .hex_to_ascii
+    b volta
+
+
+/********************************************************
+Imprimi o conteudo da memoria
+buffer uart com endereços finais e iniciais
+/********************************************************/
+ .ascii_to_adress_hex:
+ stmfd sp!,{r0-r3,lr}
+    mov r4,#0
+    mov r3,#28
+
+    .loop_adress:
+    ldrb r0,[r2]
+    bl .ascii_to_hex
+    mov r1, r0, LSL r3
+    add r4,r1,r4
+    add r2,r2,#1
+    subs r3,#4
+    bge .loop_adress
+
+    ldmfd sp!,{r0-r3,pc}
+/********************************************************/
+
+
 /* Read-Only Data Section */
 .section .rodata
 .align 4
@@ -253,7 +308,7 @@ hello:                   .asciz "hellrld\n\r"
 ledoffmsg:               .asciz "led off usr0-usr3\n\r"
 ledonmsg:                .asciz "led on usr0-usr3\n\r"
 cmdpointer:              .asciz "->"
-cmdpo:              .asciz ">"
+cmdpo:                   .asciz ">"
 ascii:                   .asciz "0123456789ABCDEF"
 dash:                    .asciz "-------------------------\n\r"
 hex_prefix:              .asciz "0x"
@@ -273,6 +328,10 @@ goto:                    .asciz "goto" /*falta*/
 reset:                   .asciz "reset"/*falta*/
 blinkled:                .asciz "blink"/*falta*/
 dec_digit_led:           .asciz "led"/*falta*/
+memory:                  .asciz "memori"
+
+.section .data
+.align 4
 
 .section .bss
 .align 4
