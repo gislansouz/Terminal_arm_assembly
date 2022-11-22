@@ -109,6 +109,36 @@ uart0_isr_exit:
     add r1, r1, #0x1
     str r1, [r2]
 
+
     mov r2, 0x1                 // re-enab RHR interrupts only
     str r2, [r0, #UART_IER]
     bx lr
+
+
+
+
+
+    .array_sum:
+        stmfd sp!,{r0-r7,lr}
+        mov r4,#0
+    .array_sum_loop:
+        cmp r4,r0
+        bge .fim_array_sum
+
+        ldr r5,[r1],#4
+        ldr r6,[r2],#4
+        add r7,r5,r6
+        str r7,[r3],#4
+        add r4,r4,#1
+
+        b .array_sum_loop
+    .fim_array_sum:
+        ldmfd sp!,{r0-r7,pc}
+
+    array_sum_thumb:
+        ldr r5,[r1],#4
+        ldr r6,[r2],#4
+        add r5,r6
+        mov r7,r5
+        str r7,[r3],#4
+        add r4,r4,#1

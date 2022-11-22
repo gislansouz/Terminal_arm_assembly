@@ -207,7 +207,7 @@ DELAY
 Converte HEX para ASCCI
 ********************************************************/
 .hex_to_ascii:
-    stmfd sp!,{r0-r3,lr}
+    stmfd sp!,{r0-r4,lr}
     mov r1, r0
 
     mov r0, #0
@@ -226,7 +226,7 @@ ascii_loop:
     ldrb r0, [r2, r0]
     bl .uart_putc
 
-    ldmfd sp!,{r0-r3,pc}
+    ldmfd sp!,{r0-r4,pc}
 /********************************************************/
 // Calcula o checksum de uma região
 //RO - Ponteiro para mem1
@@ -346,6 +346,15 @@ Imprime n caracteres de uma string
     ldmfd sp!,{r0-r2,pc}
     
 /********************************************************/
+.global .pularlinha
+/********************************************************
+função para pular linha
+/********************************************************/
+.pularlinha:
+    stmfd sp!,{r0-r9,lr}
+    ldr r0,=CRLF
+    bl .print_string
+    ldmfd sp!,{r0-r9,pc}
 
 /********************************************************
 PRINTF 
