@@ -117,7 +117,7 @@ uart0_isr_exit:
 
 
 
-
+//thumn questao 5
     .array_sum:
         stmfd sp!,{r0-r7,lr}
         mov r4,#0
@@ -142,3 +142,25 @@ uart0_isr_exit:
         mov r7,r5
         str r7,[r3],#4
         add r4,r4,#1
+
+
+
+
+//--------------------------------------------------
+.ascii_dec_digit:
+    mov r2,r0 
+    mov r1,#0
+
+    loopdec:
+        ldrb r3,[r2]
+        cmp r3,#0
+        cmpne r3,#0x20
+        add r1
+        add r2,r2,#1
+    bne loopdec
+    sub r2,r2,#2
+    mov r1,#0
+    loopstartdec:
+        ldr r2,[r0]
+
+    bne loopstartdec

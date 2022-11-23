@@ -30,7 +30,7 @@ stmfd sp!,{r0-r12,lr}
     ldr r0, =set_timer
     mov r2,#8
 	bl .memcmp
-    cmp r0,#0
+    cmp r0,#0 
     beq .set_rtc
 
     ldr r0, =setledon
@@ -60,7 +60,7 @@ stmfd sp!,{r0-r12,lr}
     mov r2,#11
 	bl .memcmp
     cmp r0,#0
-    beq .counter_leds
+    bleq .counter_leds
 
     ldr r0, =time
     mov r2,#4
@@ -86,11 +86,21 @@ stmfd sp!,{r0-r12,lr}
     cmp r0,#0
     bleq .status_cpsr
 
+    //ldr r0, =watchdog
+    //mov r2,#8
+	//bl .memcmp
+    //cmp r0,#0
+    //bleq .watchdog
+
     volta:
 
     ldr r1,=end_buffer
     mov r2,#0
     str r2,[r1]
+
+    ldr r0,=buffer_uart
+    mov r1,#30
+    bl .memory_clear
 
     ldr r0, =cmdpointer
     bl .print_string
@@ -102,7 +112,7 @@ stmfd sp!,{r0-r12,lr}
 contador 0-15 nos leds da placa e imprime na tela
 /********************************************************/
 .counter_leds:
-//stmfd sp!,{r0-r3,lr}
+stmfd sp!,{r0-r3,lr}
     mov r3,#0
     .contador:
         ldr r2, =GPIO1_SETDATAOUT
@@ -117,7 +127,7 @@ contador 0-15 nos leds da placa e imprime na tela
         voltaloop:
         cmp r3,#16
     bne .contador   
-    b volta
+    b fim
 
 .poweroff_led:
     ldr r0, =GPIO1_CLEARDATAOUT
@@ -125,9 +135,10 @@ contador 0-15 nos leds da placa e imprime na tela
     str r1, [r0]
     b voltaloop
 
+    fim:
+    bl .pularlinha
 
-
- //ldmfd sp!,{r0-r3,pc}
+ldmfd sp!,{r0-r3,pc}
 /********************************************************/
 
 /********************************************************
@@ -237,8 +248,8 @@ set_ledon
     ldr r2, =GPIO1_SETDATAOUT
     mov r1, #(0xf<<21)
     str r1, [r2]
-    //ldr r0,=ledonmsg
-    //bl .print_string
+    ldr r0,=ledonmsg
+    bl .print_string
     b volta
 /********************************************************/
 
@@ -270,34 +281,90 @@ escolhido pelo usuario
 /********************************************************/
 .register_mem:
     stmfd sp!,{r0-r11,lr}
-    //ldr r2,=buffer_uart
-    //add r2,r2,#12
-    //ldr r0,[r2]
-    //bl .ascii_to_dec_digit
-    //mov r3,r0
+    ldr r2,=buffer_uart
+    add r2,r2,#12
+    mov r3,#0
 
-    //add r2,r2,#2
-    //ldr r0,[r2]
-    //bl .ascii_to_dec_digit
-    //mov r2,r0
-    
-    ldr r0,=array_buff
-    ldm r0, {r1-r5} 
+    //primeiro digito
+    add r2,r2,#1
+    ldrb r0,[r2]
+    sub r2,r2,#1
+    cmp r0,#0x20
+    ldrneb r0,[r2]
+    blne .ascii_to_dec_digit
+    movne r6,#10
+    mulne r5,r0,r6
+    addne r3,r3,r5
+    addne r2,r2,#1
+
+    ldrb r0,[r2]
+    bl .ascii_to_dec_digit
+    add r3,r3,r0
+    add r2,r2,#2
+
+    //segundo digito
+    mov r4,#0
+    add r2,r2,#1
+    ldrb r0,[r2]
+    sub r2,r2,#1
+    cmp r0,#0x0
+    ldrneb r0,[r2]
+    blne .ascii_to_dec_digit
+    movne r6,#10
+    mulne r5,r0,r6
+    addne r4,r4,r5
+    addne r2,r2,#1
+
+    ldrb r0,[r2]
+    bl .ascii_to_dec_digit
+    add r4,r4,r0
+
+    mov r0,r3
+    mov r1,r4
+    bl .min_max
+    sub r2,r0,r1
+    cmp r0,#16
+    ldrge r0,=erroregister
+    blge .print_string
+    bge fimregister
+    add r2,r2,#1
+
+    stmfd sp!,{r0-r3}
+    //ldr r0,=array_buff
+    //ldm r0, {r1-r5} 
     ldr r0,=array_registers
     stmib r0, {r1-r15}
     str r0,[r0]
-    mov r1,r0
-    mov r2,#16
+    ldmfd sp!,{r0-r3}
+
+
+    ldr r3,=array_registers
+    mov r0,#4
+    mul r4,r1,r0
+    add r3,r3,r4
+    mov r4,r1
 
     loop_regiters:  
-        ldr r0,[r1]
+        mov r0,#'R'
+        bl  .uart_putc
+
+        mov r0,r4
+        bl .int_to_ascii
+        add r4,r4,#1
+
+        ldr r0, =dump_separator
+        mov r1, #5
+        bl .print_nstring
+
+        ldr r0,[r3]
         bl .hex_to_ascii
-        add r1,r1,#4
+        add r3,r3,#4
         sub r2,r2,#1
         bl .pularlinha
         cmp r2,#0
         bne loop_regiters
         
+        fimregister:
     ldmfd sp!,{r0-r11,pc}
 
 
@@ -309,7 +376,6 @@ Imprimi o conteudo da memoria
 buffer uart com endereços finais e iniciais
 /********************************************************/
 .memory:
-
     ldr r2,=buffer_uart
     add r2,r2,#9
     bl .ascii_to_adress_hex
@@ -319,11 +385,34 @@ buffer uart com endereços finais e iniciais
     add r2,r2,#20
     bl .ascii_to_adress_hex
 
-    cmp r4,r5
-    subge r4,r4,r5
-    movge r0,r5
-    movge r1,r4
-    blge .memory_dump
+    inverso:
+    mov r0,r5
+    mov r1,r4
+    bl .min_max
+
+    cmp r0,r5
+    moveq r7,#1
+    movne r7,#0
+
+    mov r0,r5
+    mov r1,r4
+    bl .min_max
+    sub r0,r0,r1
+    cmp r0,#4
+    movlt r0,#4
+    mov r3,r0
+
+    mov r6,#0
+    memdiv_loop:
+    cmp r0,#4
+    subgt r0,r0,#4
+    addgt r6, r6, #4
+    bgt memdiv_loop
+    add r6,r6,#8
+
+    mov r0,r5
+    mov r1,r6
+    bl .memory_dump
 
     //ldr r0,=buffer_uart
     //bl .hex_to_ascii
@@ -495,11 +584,33 @@ r5->offset para o modo especifico
 
 /********************************************************/
 
+/********************************************************
+conta de 10 a 0 e reinicia a placa
+/********************************************************
+    .mudarmodo:
+        stmfd sp!,{r0-r5,lr}
+        add r4,r4,r5
+        mov r2,#0
+        l:
+        ldrb r5,[r4,r2]
+        strb r5,[r3,r2]
+        add r2,r2,#1
+        cmp r2,#3
+        bne l
+        ldmfd sp!,{r0-r5,pc}
+
+/********************************************************/
+
 
 /* Read-Only Data Section */
 .section .rodata
 .align 4
+.global hello
 hello:                   .asciz "hellrld\n\r"
+.global irqtimer
+irqtimer:                .asciz "irqtimer\n\r"
+.global irqtimer2
+irqtimer2:                .asciz "irqtimerirq\n\r"
 ledoffmsg:               .asciz "led off usr0-usr3\n\r"
 ledonmsg:                .asciz "led on usr0-usr3\n\r"
 cmdpointer:              .asciz "->"
@@ -511,7 +622,7 @@ CRLF:                    .asciz "\n\r"
 dump_separator:          .asciz "  :  "
 cpsrstatus:              .asciz "nzcvqjIFt_MOD \n\r"
 modos:                   .asciz "abt fiq irq svc sys und usr "
-
+erroregister:             .asciz "numero fora do range de registradores\n\r"
 /*comandos*/
 contador:                .asciz "contador015"
 sequencia:               .asciz "sequencia"
@@ -526,19 +637,20 @@ reset:                   .asciz "reset"/*falta*/
 blinkled:                .asciz "blink"/*falta*/
 dec_digit_led:           .asciz "led"/*falta*/
 memory:                  .asciz "memory"
-mem_register:            .asciz "resgistermem"
+mem_register:            .asciz "registermem"
 sum_status:              .asciz "sumstatus"
+watchdog:                .asciz "watchdog"
 
 .section .data
 .balign 4
 array_registers: .skip 64
 
-array_buff:
- .word 0x00000002             /* array_buff[0] */
- .word 0x00000004             /* array_buff[1] */
- .word 0x00000006             /* array_buff[2]. This element has a relative address of array_buff+8 */
- .word 0x00000008             /* array_buff[3] */
- .word 0x00000010 
+/*array_buff:
+ .word 0x00000002     
+ .word 0x00000004             
+ .word 0x00000006            
+ .word 0x00000008             
+ .word 0x00000010 */
 
 .section .bss
 .align 4

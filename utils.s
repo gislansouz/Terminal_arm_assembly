@@ -125,7 +125,11 @@ dump_loop:
     ldr r0, =hex_prefix
     mov r1, #2
     bl .print_nstring
-    ldr r0, [r2], #4
+    cmp r7,#0
+    ldreq r0, [r2], #4
+    cmp r7,#1
+    ldreq r0, [r2]
+    subeq r2,r2,#4
     bl .hex_to_ascii
     
     //Salta linha
@@ -355,6 +359,21 @@ função para pular linha
     ldr r0,=CRLF
     bl .print_string
     ldmfd sp!,{r0-r9,pc}
+/********************************************************
+MAX e MIN
+input r0 e r1(os dois numeros)
+return:
+r0->maior numero
+r1->menor numero
+********************************************************/
+.global .min_max
+.min_max:
+    stmfd sp!,{r2,lr}
+    cmp r0,r1
+    movlt r2,r0
+    movlt r0,r1
+    movlt r1,r2
+    ldmfd sp!,{r2,pc}
 
 /********************************************************
 PRINTF 

@@ -48,7 +48,8 @@ RTC SETUP
     //ldr r1, =0x04     /* interrupt every second */
     //ldr r1, =0x05     /* interrupt every minute */
     //ldr r1, =0x06     /* interrupt every hour */
-    /*str r1, [r0, #0x48]*/
+    ldr r1,=0x4
+    str r1, [r0, #0x48]
 
     /* Enable RTC */
     ldr r0, =RTC_BASE

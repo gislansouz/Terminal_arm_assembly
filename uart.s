@@ -7,12 +7,14 @@
 .global .uart_setup
 
 /* Registradores */
+.global UART0_BASE
 .equ UART0_BASE, 0x44E09000
 .equ GPIO1_SETDATAOUT, 0x4804C194
 UART_DLL           = 0x0
 UART_RHR           = 0x0
 UART_THR           = 0x0
 UART_DLH           = 0x4
+
 UART_IER           = 0x4
 UART_FCR           = 0x8
 UART_EFR           = 0x8
@@ -186,7 +188,7 @@ ldmfd sp!,{r0-r12,pc}
 .balign 4
 
 .global buffer_uart
-buffer_uart: .skip 64
+buffer_uart: .skip 128
 
 .global end_buffer
 end_buffer: .word 0

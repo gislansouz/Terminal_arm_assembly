@@ -133,6 +133,7 @@ _start:
     bl .disable_wdt
     bl .rtc_setup
     bl .uart0_init
+    //bl .timer_init
     
     /* Enable global irq */
     mrs r0, cpsr
@@ -153,12 +154,12 @@ _start:
 
 .main_loop:
     bl .uart_getc
-    //ldr r0,=CRLF
-    //bl .print_string
-    /*ldr r0,=buffer_uart
-    mov r1,#15
-    bl .print_nstring*/
-
+    //ldr r1,=buffer_uart
+//ldr r0,=watchdog
+    //mov r2,#8
+	//bl .memcmp
+    //cmp r0,#0
+    //bleq .watchdog
     b .main_loop    
 
 /********************************************************/
@@ -178,6 +179,13 @@ IRQ Handler
 	
 	/* if rtc interrupt */
 	and r1,r1, #0x7f
+
+    cmp r1,#95
+    ldreq r0, =irqtimer2
+    bleq .print_string
+    
+    //cmp r1,#95
+    //bleq .timer_irq_halder
 
 	cmp r1, #72  /* TRM 6.3 Table 6-1*/
 	bleq .uart_isr
@@ -247,7 +255,7 @@ hex_prefix:              .asciz "0x"
 CRLF:                    .asciz "\n\r"
 dump_separator:          .asciz "  :  "
 digite:                  .asciz "digite os numeros:\n\r"
-
+watchdog:                .asciz "watchdog"
 
 /* Data Section */
 .section .data
