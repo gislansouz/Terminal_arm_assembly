@@ -179,10 +179,6 @@ IRQ Handler
 	
 	/* if rtc interrupt */
 	and r1,r1, #0x7f
-
-    cmp r1,#95
-    ldreq r0, =irqtimer2
-    bleq .print_string
     
     //cmp r1,#95
     //bleq .timer_irq_halder

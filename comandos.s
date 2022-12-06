@@ -9,7 +9,7 @@
 
 .equ GPIO1_SETDATAOUT, 0x4804C194
 .equ GPIO1_CLEARDATAOUT, 0x4804C190
-
+.equ PRM_RSTCTRL,0x44E00F00
 /* Text Section */
 .section .text,"ax"
          .code 32
@@ -85,6 +85,36 @@ stmfd sp!,{r0-r12,lr}
 	bl .memcmp
     cmp r0,#0
     bleq .status_cpsr
+
+    ldr r0, =digit_led
+    mov r2,#3
+	bl .memcmp
+    cmp r0,#0
+    bleq .dec_digit_led
+
+    ldr r0, =blinkled
+    mov r2,#5
+	bl .memcmp
+    cmp r0,#0
+    bleq .blink_led
+
+    ldr r0, =resetcmd
+    mov r2,#5
+	bl .memcmp
+    cmp r0,#0
+    bleq .reset_board
+
+    ldr r0, =cacheinfo
+    mov r2,#5
+	bl .memcmp
+    cmp r0,#0
+    bleq .cacheinfo
+
+    ldr r0, =goto
+    mov r2,#4
+	bl .memcmp
+    cmp r0,#0
+    bleq .goto
 
     //ldr r0, =watchdog
     //mov r2,#8
@@ -257,24 +287,30 @@ set_ledon
 sequencia de array
 /********************************************************/
 .sequencia:
-    //stmfd sp!,{r0-r3}
+    stmfd sp!,{r0-r3}
     mov r0,#'>'
     bl .uart_putc
+    ldr r2,=array_buff
     _loop:  
         bl .uart_getc
         bl .uart_putc
+        cmp r0,#30
+        blt fimsequencia
+        cmp r0,#39
+        bgt fimsequencia
+
         cmp r0,#'\r'
         ldreq r0,=CRLF
         bleq .print_string
         beq .sequencia
-        cmp r0,#'a'
-        ldreq r0,=CRLF
-        bleq .print_string
-        beq volta
         b _loop
+
+        fimsequencia:
     
-    //ldmfd sp!,{r0-r3}
+    ldmfd sp!,{r0-r3}
 /********************************************************/ 
+save_value_buffer:
+
 /********************************************************
 Imprimi o conteudo da memoria dos registradores no intervalo 
 escolhido pelo usuario
@@ -583,7 +619,98 @@ r5->offset para o modo especifico
         ldmfd sp!,{r0-r5,pc}
 
 /********************************************************/
+/********************************************************
+apresenta o numero passado por paramentro em binario em 
+quatro leds numero entre 0 e 15
+/********************************************************/
+.dec_digit_led: 
+    stmfd sp!,{r0-r5,lr}
+    ldr r2,=buffer_uart
+    ldrb r0,[r2,#4]
+    bl .ascii_to_dec_digit
+    mov r3,#10
+    mul r1,r3,r0
+    ldrb r0,[r2,#5]
+    bl .ascii_to_dec_digit
+    add r1,r1,r0
 
+    ldr r2, =GPIO1_SETDATAOUT
+    mov r1,r1,LSL #21
+    str r1, [r2]
+    ldmfd sp!,{r0-r5,pc}
+/********************************************************/
+
+/********************************************************
+pisca o N vezes passada por paramentro
+/********************************************************/
+.blink_led:
+stmfd sp!,{r0-r5,lr}
+    ldr r2,=buffer_uart
+    ldrb r0,[r2,#6]
+    bl .ascii_to_dec_digit
+    mov r3,#10
+    mul r1,r3,r0
+    ldrb r0,[r2,#7]
+    bl .ascii_to_dec_digit
+    add r1,r1,r0
+
+    mov r0,#(0xf<<21)
+
+    loopblk:
+        ldr r2, =GPIO1_SETDATAOUT
+        str r0, [r2]
+		bl .delay
+
+        ldr r2, =GPIO1_CLEARDATAOUT
+        str r0, [r2]
+        bl .delay
+
+        subs r1,r1,#1
+        cmp r1,#0
+    bne loopblk  
+
+ldmfd sp!,{r0-r5,pc}
+/********************************************************/
+
+/********************************************************
+reseta a placa
+/********************************************************/
+.reset_board:
+    ldr r2, =PRM_RSTCTRL
+    mov r1,#1
+    str r1, [r2]
+/********************************************************/
+
+/********************************************************
+muda o pc para o endereço passado por parametro
+/********************************************************/
+.goto:
+    ldr r2,=buffer_uart
+    add r2,r2,#7
+    bl .ascii_to_adress_hex
+    mrs r0, cpsr
+	bic r0, r0, #0x1f /* clear mode bits */
+	orr r0, r0, #0xd3 /* disable IRQ and FIQ interrupts and set Supervisor mode */
+	msr cpsr, r0
+
+    ldr r1,=end_buffer
+    mov r2,#0
+    str r2,[r1]
+
+    ldr r0,=buffer_uart
+    mov r1,#30
+    bl .memory_clear
+
+    bx r4
+  
+/********************************************************/
+
+/********************************************************
+conta de 10 a 0 e reinicia a placa
+/********************************************************/
+.cacheinfo:
+
+/********************************************************/
 /********************************************************
 conta de 10 a 0 e reinicia a placa
 /********************************************************
@@ -606,11 +733,9 @@ conta de 10 a 0 e reinicia a placa
 .section .rodata
 .align 4
 .global hello
-hello:                   .asciz "hellrld\n\r"
+hello:                   .asciz "hello world!\n\r"
 .global irqtimer
 irqtimer:                .asciz "irqtimer\n\r"
-.global irqtimer2
-irqtimer2:                .asciz "irqtimerirq\n\r"
 ledoffmsg:               .asciz "led off usr0-usr3\n\r"
 ledonmsg:                .asciz "led on usr0-usr3\n\r"
 cmdpointer:              .asciz "->"
@@ -622,7 +747,7 @@ CRLF:                    .asciz "\n\r"
 dump_separator:          .asciz "  :  "
 cpsrstatus:              .asciz "nzcvqjIFt_MOD \n\r"
 modos:                   .asciz "abt fiq irq svc sys und usr "
-erroregister:             .asciz "numero fora do range de registradores\n\r"
+erroregister:            .asciz "numero fora do range de registradores\n\r"
 /*comandos*/
 contador:                .asciz "contador015"
 sequencia:               .asciz "sequencia"
@@ -632,10 +757,10 @@ setledoff:               .asciz "led off"
 setledon:                .asciz "led on"
 time:                    .asciz "time"
 cacheinfo:               .asciz "cache"/*falta*/
-goto:                    .asciz "goto" /*falta*/
-reset:                   .asciz "reset"/*falta*/
-blinkled:                .asciz "blink"/*falta*/
-dec_digit_led:           .asciz "led"/*falta*/
+goto:                    .asciz "goto"
+resetcmd:                .asciz "reset"
+blinkled:                .asciz "blink"
+digit_led:               .asciz "led"
 memory:                  .asciz "memory"
 mem_register:            .asciz "registermem"
 sum_status:              .asciz "sumstatus"
@@ -643,7 +768,14 @@ watchdog:                .asciz "watchdog"
 
 .section .data
 .balign 4
+
 array_registers: .skip 64
+
+sequence_buff_input: .skip 64
+
+array_buff: .skip 128
+
+buffersize_end: .word 0
 
 /*array_buff:
  .word 0x00000002     

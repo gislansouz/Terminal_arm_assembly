@@ -148,12 +148,13 @@ dump_loop:
 DELAY
 ********************************************************/
 .delay:
-    ldr r1, =0xfffffff
+    stmfd sp!,{r0-r4,lr}
+    mov r1, #(0xffffff)
 .wait:
     sub r1, r1, #0x1
     cmp r1, #0
     bne .wait
-    bx lr
+    ldmfd sp!,{r0-r4,pc}
 /********************************************************/
 .delay_1s:
     stmfd sp!,{r0-r4,lr}
