@@ -2,7 +2,7 @@ CROSS_COMPILE ?= arm-linux-gnueabihf-
 
 #FILES = uart.s utils.s wdt.s cp15.s gpio.s comandos.s
 
-OBJS = startup.o uart.o utils.o wdt.o cp15.o gpio.o rtc.o comandos.o timer.o
+OBJS = startup.o uart.o utils.o wdt.o cp15.o gpio.o rtc.o comandos.o timer.o sequencia.o
 
 %.o: %.s
 	$(CROSS_COMPILE)as $< -o $@

@@ -110,20 +110,31 @@ UART0 PUTC (Default configuration)
 UART0 GETC (Default configuration)  
 ********************************************************/
 .uart_getc:
-    stmfd sp!,{r1-r2,lr}
+    stmfd sp!,{r1-r6,lr}
+
     ldr     r1, =UART0_BASE
+    //mov r6,#0 
 
 .wait_rx_fifo:
+    //bl .checkinative
     ldr r2, [r1, #0x14] 
     and r2, r2, #(1<<0)
     cmp r2, #0
     beq .wait_rx_fifo
 
+    //mov r6,#0 
+
     ldrb    r0, [r1]
-    ldmfd sp!,{r1-r2,pc}
+    ldmfd sp!,{r1-r6,pc}
 /********************************************************/
-
-
+/*
+.checkinative:
+    bl .delay_1s
+    add r6,r6,#1
+    cmp r6,#(0x700)
+    bleq .reset_board
+    bx lr
+*/
 /********************************************************
 UART0 ISR 
 ********************************************************/

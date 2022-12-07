@@ -39,11 +39,17 @@ stmfd sp!,{r0-r12,lr}
     cmp r0,#0
     beq .set_ledon
 
+    ldr r0, =print_mem
+    mov r2,#8
+	bl .memcmp
+    cmp r0,#0
+    bleq .printmem
+
     ldr r0, =sequencia
     mov r2,#9
 	bl .memcmp
     cmp r0,#0
-    beq .sequencia
+    bleq .sequencia
 
     ldr r0, =setledoff
     mov r2,#7
@@ -61,6 +67,12 @@ stmfd sp!,{r0-r12,lr}
 	bl .memcmp
     cmp r0,#0
     bleq .counter_leds
+
+    ldr r0, =stringequal
+    mov r2,#11
+	bl .memcmp
+    cmp r0,#0
+    bleq .stringequal
 
     ldr r0, =time
     mov r2,#4
@@ -104,11 +116,11 @@ stmfd sp!,{r0-r12,lr}
     cmp r0,#0
     bleq .reset_board
 
-    ldr r0, =cacheinfo
-    mov r2,#5
-	bl .memcmp
-    cmp r0,#0
-    bleq .cacheinfo
+    //ldr r0, =cacheinfo
+    //mov r2,#5
+	//bl .memcmp
+    //cmp r0,#0
+    //bleq .cacheinfo
 
     ldr r0, =goto
     mov r2,#4
@@ -282,34 +294,6 @@ set_ledon
     bl .print_string
     b volta
 /********************************************************/
-
-/********************************************************
-sequencia de array
-/********************************************************/
-.sequencia:
-    stmfd sp!,{r0-r3}
-    mov r0,#'>'
-    bl .uart_putc
-    ldr r2,=array_buff
-    _loop:  
-        bl .uart_getc
-        bl .uart_putc
-        cmp r0,#30
-        blt fimsequencia
-        cmp r0,#39
-        bgt fimsequencia
-
-        cmp r0,#'\r'
-        ldreq r0,=CRLF
-        bleq .print_string
-        beq .sequencia
-        b _loop
-
-        fimsequencia:
-    
-    ldmfd sp!,{r0-r3}
-/********************************************************/ 
-save_value_buffer:
 
 /********************************************************
 Imprimi o conteudo da memoria dos registradores no intervalo 
@@ -675,6 +659,7 @@ ldmfd sp!,{r0-r5,pc}
 /********************************************************
 reseta a placa
 /********************************************************/
+.global .reset_board
 .reset_board:
     ldr r2, =PRM_RSTCTRL
     mov r1,#1
@@ -708,11 +693,18 @@ muda o pc para o endereço passado por parametro
 /********************************************************
 conta de 10 a 0 e reinicia a placa
 /********************************************************/
-.cacheinfo:
+.printmem:
+stmfd sp!,{r0-r7,lr}
+    ldr r0,=_vector_table
+    mov r1,#(0x1698)
+    mov r7,#0
+    bl .memory_dump
+ldmfd sp!,{r0-r7,pc}
 
 /********************************************************/
 /********************************************************
-conta de 10 a 0 e reinicia a placa
+conta de 10 a 0 e reinic.cacheinfo:
+ia a placa
 /********************************************************
     .mudarmodo:
         stmfd sp!,{r0-r5,lr}
@@ -751,7 +743,9 @@ erroregister:            .asciz "numero fora do range de registradores\n\r"
 /*comandos*/
 contador:                .asciz "contador015"
 sequencia:               .asciz "sequencia"
+stringequal:             .asciz "stringequal"
 printhello:              .asciz "helloworld"
+print_mem:               .asciz "printmem"
 set_timer:               .asciz "set time"
 setledoff:               .asciz "led off"
 setledon:                .asciz "led on"
@@ -771,11 +765,6 @@ watchdog:                .asciz "watchdog"
 
 array_registers: .skip 64
 
-sequence_buff_input: .skip 64
-
-array_buff: .skip 128
-
-buffersize_end: .word 0
 
 /*array_buff:
  .word 0x00000002     
